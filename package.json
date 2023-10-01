@@ -1,0 +1,17 @@
+{
+  "name": "hngx-stage5",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/Sorphy/hngx-stage5.git",
+  "author": "Sofiyyah <sofiyyahabidoye@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "http": "^0.0.1-security",
+    "multer": "^1.4.5-lts.1",
+    "ws": "^8.14.2"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
