@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   startRecording,
   streamRecordingData,
-  stopRecordingAndSaveFile,
+  stopRecordingAndSave,
   streamVideo,
 } = require("../controllers/videoController");
 
@@ -14,7 +14,7 @@ router.post("/start-recording", startRecording);
 router.post("/stream-recording/:sessionID", streamRecordingData);
 
 // Stop recording and save the file
-router.post("/stop-recording/:sessionID", stopRecordingAndSaveFile);
+router.post("/stop-recording/:sessionID", stopRecordingAndSave);
 
 //  stream video
 router.get("/stream/:sessionID", streamVideo);

@@ -1,16 +1,17 @@
 const fs = require("fs");
 const path = require("path");
+const uuid = require("uuid");
 
-const recordingData = {};
+const recordData = {};
 
 const startRecording = (req, res) => {
   try {
-    const sessionID = generateUniqueSessionID();
-    recordingData[sessionID] = { data: [], timeout: null };
+    const sessionID = generateUniqueId();
+    recordData[sessionID] = { data: [], timeout: null };
 
     res.status(200).json({ sessionID });
   } catch (error) {
-    res.status(500).json({ error: "Failed to start recording." });
+    res.status(500).json({ error: "Recording initialization failed." });
   }
 };
 
@@ -18,7 +19,7 @@ const streamRecordingData = (req, res) => {
   try {
     const { sessionID } = req.params;
 
-    if (!recordingData[sessionID]) {
+    if (!recordData[sessionID]) {
       return res.status(404).json({ error: "Session not found." });
     }
 
@@ -26,32 +27,34 @@ const streamRecordingData = (req, res) => {
       req.body.videoDataChunk,
       "base64"
     );
-    recordingData[sessionID].data.push(decodedVideoDataChunk);
+    recordData[sessionID].data.push(decodedVideoDataChunk);
 
-    if (recordingData[sessionID].timeout) {
-      clearTimeout(recordingData[sessionID].timeout);
+    if (recordData[sessionID].timeout) {
+      clearTimeout(recordData[sessionID].timeout);
     }
 
-    recordingData[sessionID].timeout = setTimeout(() => {
+    recordData[sessionID].timeout = setTimeout(() => {
       deleteFile(sessionID);
     }, 5 * 60 * 1000);
 
-    res.status(200).json({ message: "Video data chunk received successfully" });
+    res
+      .status(200)
+      .json({ message: "Video data chunk is successfully received." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to stream video data." });
+    res.status(500).json({ error: "Unable to transmit video data." });
   }
 };
 
-const stopRecordingAndSaveFile = (req, res) => {
+const stopRecordingAndSave = (req, res) => {
   try {
     const { sessionID } = req.params;
 
-    if (!recordingData[sessionID]) {
+    if (!recordData[sessionID]) {
       return res.status(404).json({ error: "Session not found." });
     }
 
-    const videoData = Buffer.concat(recordingData[sessionID].data);
+    const videoData = Buffer.concat(recordData[sessionID].data);
     const uniqueFilename = `${sessionID}-video.mp4`;
 
     const directoryPath = path.join(__dirname, "../uploads");
@@ -64,8 +67,8 @@ const stopRecordingAndSaveFile = (req, res) => {
 
     fs.writeFileSync(videoURL, videoData);
 
-    clearTimeout(recordingData[sessionID].timeout);
-    delete recordingData[sessionID];
+    clearTimeout(recordData[sessionID].timeout);
+    delete recordData[sessionID];
 
     const streamURL = `/stream/${sessionID}`;
 
@@ -78,12 +81,12 @@ const stopRecordingAndSaveFile = (req, res) => {
       .json({ streamURL, message: "Video saved successfully", videoURL });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to stop recording and save file." });
+    res.status(500).json({ error: "unable to stop and save recording" });
   }
 };
 
-const generateUniqueSessionID = () => {
-  return Date.now().toString();
+const generateUniqueId = () => {
+  return uuid.v4();
 };
 
 const deleteFile = (filePath) => {
@@ -144,6 +147,6 @@ const streamVideo = (req, res) => {
 module.exports = {
   startRecording,
   streamRecordingData,
-  stopRecordingAndSaveFile,
+  stopRecordingAndSave,
   streamVideo,
 };
