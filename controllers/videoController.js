@@ -1,14 +1,15 @@
 const fs = require("fs");
 const path = require("path");
 const uuid = require("uuid");
+const { Deepgram } = require("@deepgram/sdk");
 
+const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
 const recordData = {};
 
 const startRecording = (req, res) => {
   try {
     const sessionID = generateUniqueId();
-    recordData[sessionID] = { data: [], timeout: null };
-
+    recordData[sessionID] = { data: [], transcript: [], timeout: null };
     res.status(200).json({ sessionID });
   } catch (error) {
     res.status(500).json({ error: "Recording initialization failed." });
@@ -33,8 +34,11 @@ const streamRecordingData = (req, res) => {
       clearTimeout(recordData[sessionID].timeout);
     }
 
-    recordData[sessionID].timeout = setTimeout(() => {
-      deleteFile(sessionID);
+      recordData[sessionID].timeout = setTimeout(async () => {
+          const videoData = Buffer.concat(recordData[sessionID].data);
+          const transcript = await videoTranscription(videoData);
+          recordData[sessionID].transcript = transcript;
+        deleteFile(sessionID);
     }, 5 * 60 * 1000);
 
     res
@@ -83,6 +87,19 @@ const stopRecordingAndSave = (req, res) => {
     console.error(error);
     res.status(500).json({ error: "unable to stop and save recording" });
   }
+};
+
+const videoTranscription = async (videoData) => {
+    try {
+        const transcription = await deepgram.transcription({
+            content: videoData,
+            encoding: "base64",
+        });
+        return transcription.text;
+    } catch (error) {
+        console.error("Error transcribing video:", error);
+        return "";
+    }
 };
 
 const generateUniqueId = () => {
